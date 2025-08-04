@@ -60,7 +60,7 @@ const SCREEN_OPTIONS = {
 
 const INDEX_OPTIONS = {
   headerLargeTitle: true,
-  title: 'NativeWindUI',
+  title: 'Plant Tracker',
   headerRight: () => <SettingsIcon />,
 } as const;
 
