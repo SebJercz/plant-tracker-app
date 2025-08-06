@@ -9,7 +9,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 import { Link, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, Text } from 'react-native';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -17,6 +17,7 @@ import { ThemeToggle } from '~/components/ThemeToggle';
 import { cn } from '~/lib/cn';
 import { useColorScheme, useInitialAndroidBarSync } from '~/lib/useColorScheme';
 import { NAV_THEME } from '~/theme';
+import { useStore } from '~/store/store';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -61,21 +62,66 @@ const SCREEN_OPTIONS = {
 const INDEX_OPTIONS = {
   headerLargeTitle: true,
   title: 'Plant Tracker',
-  headerRight: () => <SettingsIcon />,
+  headerRight: () => <HeaderButtons />,
 } as const;
 
-function SettingsIcon() {
+function HeaderButtons() {
   const { colors } = useColorScheme();
+  const { debugTimeOffset, setDebugTimeOffset } = useStore();
+
+  const handleTimeForward = () => {
+    setDebugTimeOffset(debugTimeOffset + 1);
+  };
+
+  const handleTimeBackward = () => {
+    setDebugTimeOffset(debugTimeOffset - 1);
+  };
+
+  const handleResetTime = () => {
+    setDebugTimeOffset(0);
+  };
+
   return (
-    <Link href="/modal" asChild>
-      <Pressable className="opacity-80">
+    <View className="flex-row items-center gap-2">
+      {/* Debug Time Travel Buttons */}
+      <Pressable onPress={handleTimeBackward} className="opacity-80">
         {({ pressed }) => (
-          <View className={cn(pressed ? 'opacity-50' : 'opacity-90')}>
-            <Icon name="cog-outline" color={colors.foreground} />
+          <View className={cn(pressed ? 'opacity-50' : 'opacity-90', 'w-6 h-6 items-center justify-center')}>
+            <Text style={{ color: colors.grey, fontSize: 16, fontWeight: 'bold' }}>◀</Text>
           </View>
         )}
       </Pressable>
-    </Link>
+      
+      <Pressable onPress={handleTimeForward} className="opacity-80">
+        {({ pressed }) => (
+          <View className={cn(pressed ? 'opacity-50' : 'opacity-90', 'w-6 h-6 items-center justify-center')}>
+            <Text style={{ color: colors.grey, fontSize: 16, fontWeight: 'bold' }}>▶</Text>
+          </View>
+        )}
+      </Pressable>
+      
+      {/* Reset Time Button */}
+      {debugTimeOffset !== 0 && (
+        <Pressable onPress={handleResetTime} className="opacity-80">
+          {({ pressed }) => (
+            <View className={cn(pressed ? 'opacity-50' : 'opacity-90', 'w-6 h-6 items-center justify-center')}>
+              <Text style={{ color: colors.grey, fontSize: 16, fontWeight: 'bold' }}>⟲</Text>
+            </View>
+          )}
+        </Pressable>
+      )}
+      
+      {/* Settings Button */}
+      <Link href="/modal" asChild>
+        <Pressable className="opacity-80">
+          {({ pressed }) => (
+            <View className={cn(pressed ? 'opacity-50' : 'opacity-90')}>
+              <Icon name="cog-outline" color={colors.foreground} />
+            </View>
+          )}
+        </Pressable>
+      </Link>
+    </View>
   );
 }
 

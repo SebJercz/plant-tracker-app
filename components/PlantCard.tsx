@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/nativewindui/Avatar';
 import { ProgressIndicator } from '~/components/nativewindui/ProgressIndicator';
 import { Text } from '~/components/nativewindui/Text';
-import { Plant } from '~/store/store';
+import { Plant, useStore, getCurrentTimeWithOffset, getEffectiveLastWatered } from '~/store/store';
 
 interface PlantCardProps {
   plant: Plant;
@@ -22,21 +22,41 @@ const getRoomDisplayName = (roomValue: string): string => {
 };
 
 export const PlantCard = React.memo(({ plant, onPress }: PlantCardProps) => {
+  const { debugTimeOffset, manualWateringMode } = useStore();
+  
   // Calculate watering progress with better precision handling and memoization
-  const { progress, needsWatering, daysLeft } = useMemo(() => {
-    const now = new Date();
-    const timeSinceLastWatered = now.getTime() - plant.lastWatered.getTime();
+  const { progress, needsWatering, daysLeft, isReadyToWater, shouldShowGreenBackground, shouldShowRedBackground, overdueDays } = useMemo(() => {
+    const now = getCurrentTimeWithOffset(debugTimeOffset);
+    const effectiveLastWatered = getEffectiveLastWatered(plant, now, manualWateringMode);
+    const timeSinceLastWatered = now.getTime() - effectiveLastWatered.getTime();
     const daysSinceLastWatered = Math.floor(timeSinceLastWatered / (1000 * 60 * 60 * 24));
-    const progress = Math.min(Math.max(0, (daysSinceLastWatered / plant.wateringInterval) * 100), 100);
+    const progress = Math.floor(Math.min(Math.max(0, (daysSinceLastWatered / plant.wateringInterval) * 100), 100));
     const needsWatering = daysSinceLastWatered >= plant.wateringInterval;
     const daysLeft = Math.max(0, plant.wateringInterval - daysSinceLastWatered);
     
-    return { progress, needsWatering, daysLeft };
-  }, [plant.lastWatered, plant.wateringInterval]);
+    // Plant is ready to water on the exact day it needs watering
+    const isReadyToWater = daysSinceLastWatered === plant.wateringInterval;
+    
+    // Show green background when plant needs watering (exact day)
+    const shouldShowGreenBackground = daysSinceLastWatered === plant.wateringInterval;
+    
+    // Show red background when plant is overdue (day after watering is due)
+    const shouldShowRedBackground = daysSinceLastWatered > plant.wateringInterval;
+    
+    // Calculate overdue days
+    const overdueDays = Math.max(0, daysSinceLastWatered - plant.wateringInterval);
+    
+    return { progress, needsWatering, daysLeft, isReadyToWater, shouldShowGreenBackground, shouldShowRedBackground, overdueDays };
+  }, [plant.lastWatered, plant.wateringInterval, debugTimeOffset, manualWateringMode]);
 
   return (
     <Pressable onPress={onPress}>
-      <View className="bg-card rounded-xl border border-border p-3 shadow-sm">
+      <View 
+        className={`rounded-xl border border-border p-3 shadow-sm ${
+          shouldShowRedBackground ? 'bg-red-50 border-red-200' :
+          shouldShowGreenBackground ? 'bg-green-50 border-green-200' : 'bg-card'
+        }`}
+      >
         {/* Plant Image */}
         <View className="items-center mb-3">
           <Avatar className="w-20 h-20" alt={plant.name}>
@@ -69,7 +89,7 @@ export const PlantCard = React.memo(({ plant, onPress }: PlantCardProps) => {
         <View className="mb-2">
           <ProgressIndicator 
             value={progress} 
-            className={needsWatering ? "bg-destructive" : ""}
+            className={isReadyToWater ? "bg-green-500" : shouldShowRedBackground ? "bg-destructive" : ""}
           />
         </View>
 
@@ -79,7 +99,8 @@ export const PlantCard = React.memo(({ plant, onPress }: PlantCardProps) => {
           className={`text-center ${needsWatering ? 'text-destructive font-medium' : 'text-muted-foreground'}`}
         >
           {needsWatering 
-            ? 'Needs watering!' 
+            ? (isReadyToWater ? 'Ready to water!' : 
+               shouldShowRedBackground ? `${overdueDays} day${overdueDays !== 1 ? 's' : ''} overdue!` : 'Needs watering!') 
             : `${daysLeft} days left`
           }
         </Text>

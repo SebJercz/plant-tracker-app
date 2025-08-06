@@ -1,12 +1,5 @@
 import * as React from 'react';
 import { View } from 'react-native';
-import Animated, {
-  Extrapolation,
-  interpolate,
-  useAnimatedStyle,
-  useDerivedValue,
-  withSpring,
-} from 'react-native-reanimated';
 
 import { cn } from '~/lib/cn';
 
@@ -33,16 +26,7 @@ const ProgressIndicator = React.forwardRef<
   ) => {
     const max = maxProp ?? DEFAULT_MAX;
     const value = isValidValueNumber(valueProp, max) ? valueProp : 0;
-    const progress = useDerivedValue(() => value ?? 0);
-
-    const indicator = useAnimatedStyle(() => {
-      return {
-        width: withSpring(
-          `${interpolate(progress.value, [0, 100], [1, 100], Extrapolation.CLAMP)}%`,
-          { overshootClamping: true }
-        ),
-      };
-    });
+    const percentage = Math.min(Math.max(0, (value / max) * 100), 100);
 
     return (
       <View
@@ -61,7 +45,11 @@ const ProgressIndicator = React.forwardRef<
         className={cn('relative h-1 w-full overflow-hidden rounded-full', className)}
         {...props}>
         <View className="absolute bottom-0 left-0 right-0 top-0 bg-muted opacity-20" />
-        <Animated.View role="presentation" style={indicator} className={cn('h-full bg-primary')} />
+        <View 
+          role="presentation" 
+          style={{ width: `${percentage}%` }} 
+          className={cn('h-full bg-primary transition-all duration-300')} 
+        />
       </View>
     );
   }

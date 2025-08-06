@@ -8,10 +8,12 @@ import { Picker, PickerItem } from '~/components/nativewindui/Picker';
 import { ImagePickerButton } from '~/components/ImagePickerButton';
 import { useStore } from '~/store/store';
 import { useColorScheme } from '~/lib/useColorScheme';
+import { Plant } from '~/store/store';
 
 interface AddPlantModalProps {
   isVisible: boolean;
   onClose: () => void;
+  plantToEdit?: Plant | null; // Optional plant to edit
 }
 
 const ROOM_OPTIONS = [
@@ -36,8 +38,8 @@ const getRandomDefaultImage = () => {
   return DEFAULT_PLANT_IMAGES[randomIndex];
 };
 
-export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
-  const { addPlant } = useStore();
+export function AddPlantModal({ isVisible, onClose, plantToEdit }: AddPlantModalProps) {
+  const { addPlant, updatePlant } = useStore();
   const { colors } = useColorScheme();
   const sheetRef = useSheetRef();
   const [plantName, setPlantName] = useState('');
@@ -45,7 +47,28 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
   const [wateringInterval, setWateringInterval] = useState(7);
   const [selectedRoom, setSelectedRoom] = useState('living-room');
   const [selectedImage, setSelectedImage] = useState<string | undefined>();
+  const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize form with plant data when editing
+  useEffect(() => {
+    if (plantToEdit) {
+      setPlantName(plantToEdit.name);
+      setScientificName(plantToEdit.scientificName);
+      setWateringInterval(plantToEdit.wateringInterval);
+      setSelectedRoom(plantToEdit.room);
+      setSelectedImage(plantToEdit.image);
+      setNotes(plantToEdit.notes || '');
+    } else {
+      // Reset form for new plant
+      setPlantName('');
+      setScientificName('');
+      setWateringInterval(7);
+      setSelectedRoom('living-room');
+      setSelectedImage(undefined);
+      setNotes('');
+    }
+  }, [plantToEdit]);
 
   useEffect(() => {
     if (isVisible) {
@@ -55,7 +78,7 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
     }
   }, [isVisible]);
 
-  const handleAddPlant = async () => {
+  const handleSavePlant = async () => {
     if (!plantName.trim()) {
       Alert.alert('Error', 'Please enter a plant name');
       return;
@@ -68,15 +91,28 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
 
     setIsSubmitting(true);
     try {
-      // Add the new plant with custom image or random default
-      await addPlant({
-        name: plantName.trim(),
-        scientificName: scientificName.trim(),
-        room: selectedRoom,
-        image: selectedImage || getRandomDefaultImage(),
-        lastWatered: new Date(),
-        wateringInterval: Math.round(wateringInterval),
-      });
+      if (plantToEdit) {
+        // Update existing plant
+        await updatePlant(plantToEdit.id, {
+          name: plantName.trim(),
+          scientificName: scientificName.trim(),
+          room: selectedRoom,
+          image: selectedImage || plantToEdit.image,
+          wateringInterval: Math.round(wateringInterval),
+          notes: notes.trim(),
+        });
+      } else {
+        // Add new plant
+        await addPlant({
+          name: plantName.trim(),
+          scientificName: scientificName.trim(),
+          room: selectedRoom,
+          image: selectedImage || getRandomDefaultImage(),
+          lastWatered: new Date(),
+          wateringInterval: Math.round(wateringInterval),
+          notes: notes.trim(),
+        });
+      }
 
       // Reset form and close modal
       setPlantName('');
@@ -84,9 +120,10 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
       setWateringInterval(7);
       setSelectedRoom('living-room');
       setSelectedImage(undefined);
+      setNotes('');
       onClose();
     } catch (error) {
-      Alert.alert('Error', 'Failed to add plant. Please try again.');
+      Alert.alert('Error', `Failed to ${plantToEdit ? 'update' : 'add'} plant. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -98,12 +135,15 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
     setWateringInterval(7);
     setSelectedRoom('living-room');
     setSelectedImage(undefined);
+    setNotes('');
     onClose();
   };
 
   const handleImageSelected = (imageUri: string) => {
     setSelectedImage(imageUri);
   };
+
+  const isEditing = !!plantToEdit;
 
   return (
     <Sheet 
@@ -115,7 +155,7 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
         {/* Header */}
         <View className="p-6 pb-4 border-b border-border">
           <Text variant="title2" className="text-center font-semibold">
-            Add New Plant
+            {isEditing ? 'Edit Plant' : 'Add New Plant'}
           </Text>
         </View>
 
@@ -182,7 +222,7 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
           </View>
 
           {/* Watering Frequency Slider */}
-          <View className="mb-6">
+          <View className="mb-4">
             <Text variant="subhead" className="mb-2 font-medium">
               Watering Frequency: {Math.round(wateringInterval)} days
             </Text>
@@ -199,11 +239,29 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
               <Text variant="caption2" className="text-muted-foreground">30 days</Text>
             </View>
           </View>
+
+          {/* Notes Input */}
+          <View className="mb-6">
+            <Text variant="subhead" className="mb-2 font-medium">
+              Notes
+            </Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Add custom notes about your plant..."
+              className="border border-border rounded-lg px-3 py-2 bg-card text-foreground"
+              placeholderTextColor="#666"
+              editable={!isSubmitting}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
         </ScrollView>
 
-        {/* Action Buttons - Fixed at bottom with debug styling */}
+        {/* Action Buttons - Fixed at bottom */}
         <View 
-          className="p-6 border-t border-border bg-red-500"
+          className="p-6 border-t border-border bg-card"
           style={{
             position: 'absolute',
             bottom: 0,
@@ -224,13 +282,13 @@ export function AddPlantModal({ isVisible, onClose }: AddPlantModalProps) {
               <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>CANCEL</Text>
             </Button>
             <Button
-              onPress={handleAddPlant}
+              onPress={handleSavePlant}
               className="flex-1"
               disabled={isSubmitting}
               style={{ backgroundColor: 'green', minHeight: 50 }}
             >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
-                {isSubmitting ? 'Adding...' : 'ADD PLANT'}
+                {isSubmitting ? 'Saving...' : (isEditing ? 'UPDATE PLANT' : 'ADD PLANT')}
               </Text>
             </Button>
           </View>
