@@ -16,6 +16,7 @@ import { AddPlantModal } from '~/components/AddPlantModal';
 import { useColorScheme } from '~/lib/useColorScheme';
 import { useStore } from '~/store/store';
 import { Text } from '~/components/nativewindui/Text';
+import { ActivityIndicator } from '~/components/nativewindui/ActivityIndicator';
 
 cssInterop(FlatList, {
   className: 'style',
@@ -23,12 +24,17 @@ cssInterop(FlatList, {
 });
 
 export default function Screen() {
-  const { plants } = useStore();
+  const { plants, isLoading, loadPlants } = useStore();
   const insets = useSafeAreaInsets();
   const dimensions = useWindowDimensions();
   const headerHeight = useHeaderHeight();
   const { colors } = useColorScheme();
   const [isAddModalVisible, setIsAddModalVisible] = React.useState(false);
+
+  // Load plants when component mounts
+  React.useEffect(() => {
+    loadPlants();
+  }, []);
 
   const handlePlantPress = (plantId: string) => {
     // TODO: Navigate to plant detail screen
@@ -69,17 +75,34 @@ export default function Screen() {
     );
   };
 
+  const renderLoadingState = () => {
+    const height = dimensions.height - headerHeight - insets.bottom - insets.top;
+    
+    return (
+      <View style={{ height }} className="flex-1 items-center justify-center gap-4">
+        <ActivityIndicator />
+        <Text variant="subhead" className="text-muted-foreground">
+          Loading your plants...
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <View className="flex-1">
-      <FlatList
-        data={plants}
-        renderItem={renderPlantItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerClassName="py-4 pb-24"
-        ListEmptyComponent={plants.length === 0 ? renderEmptyState : undefined}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        renderLoadingState()
+      ) : (
+        <FlatList
+          data={plants}
+          renderItem={renderPlantItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerClassName="py-4 pb-24"
+          ListEmptyComponent={plants.length === 0 ? renderEmptyState : undefined}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
       
       <FloatingActionButton onPress={handleAddPlantPress} />
       
