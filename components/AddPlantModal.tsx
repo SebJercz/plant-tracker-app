@@ -108,7 +108,6 @@ export function AddPlantModal({ isVisible, onClose, plantToEdit }: AddPlantModal
           scientificName: scientificName.trim(),
           room: selectedRoom,
           image: selectedImage || getRandomDefaultImage(),
-          lastWatered: new Date(),
           wateringInterval: Math.round(wateringInterval),
           notes: notes.trim(),
         });
@@ -271,24 +270,32 @@ export function AddPlantModal({ isVisible, onClose, plantToEdit }: AddPlantModal
             minHeight: 80,
           }}
         >
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-3 justify-center">
             <Button
               variant="secondary"
               onPress={handleCancel}
-              className="flex-1"
+              className="flex-1 max-w-32"
               disabled={isSubmitting}
-              style={{ backgroundColor: 'blue', minHeight: 50 }}
+              style={{ 
+                backgroundColor: 'transparent',
+                borderWidth: 1,
+                borderColor: '#6b7280',
+                minHeight: 50,
+              }}
             >
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>CANCEL</Text>
+              <Text style={{ color: '#6b7280', fontSize: 16, fontWeight: '600' }}>Cancel</Text>
             </Button>
             <Button
               onPress={handleSavePlant}
-              className="flex-1"
+              className="flex-1 max-w-32"
               disabled={isSubmitting}
-              style={{ backgroundColor: 'green', minHeight: 50 }}
+              style={{ 
+                backgroundColor: '#10b981', 
+                minHeight: 50,
+              }}
             >
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
-                {isSubmitting ? 'Saving...' : (isEditing ? 'UPDATE PLANT' : 'ADD PLANT')}
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                {isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Add Plant')}
               </Text>
             </Button>
           </View>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as FileSystem from 'expo-file-system';
+import { notificationService, NotificationSettings } from '~/lib/notifications';
 
 export interface Plant {
   id: string;
@@ -20,6 +21,7 @@ export interface PlantState {
   debugTimeOffset: number;
   searchTerm: string;
   filterType: 'default' | 'alphabetical' | 'room' | 'watering-priority';
+  notificationSettings: NotificationSettings;
   addPlant: (plant: Omit<Plant, 'id' | 'lastWatered'>) => Promise<void>;
   removePlant: (id: string) => Promise<void>;
   updatePlant: (id: string, updates: Partial<Plant>) => Promise<void>;
@@ -30,6 +32,9 @@ export interface PlantState {
   setSearchTerm: (term: string) => void;
   setFilterType: (type: 'default' | 'alphabetical' | 'room' | 'watering-priority') => Promise<void>;
   getFilteredPlants: () => Plant[];
+  setNotificationSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
+  testNotification: () => Promise<void>;
+  testBackgroundNotification: () => Promise<void>;
 }
 
 // File paths for data storage
@@ -88,6 +93,7 @@ const saveSettingsToFile = async (settings: {
   manualWateringMode: boolean;
   searchTerm: string;
   filterType: 'default' | 'alphabetical' | 'room' | 'watering-priority';
+  notificationSettings: NotificationSettings;
 }) => {
   if (!FileSystem.documentDirectory) return;
   
@@ -103,22 +109,46 @@ const loadSettingsFromFile = async (): Promise<{
   manualWateringMode: boolean;
   searchTerm: string;
   filterType: 'default' | 'alphabetical' | 'room' | 'watering-priority';
+  notificationSettings: NotificationSettings;
 }> => {
   if (!FileSystem.documentDirectory) {
-    return { manualWateringMode: false, searchTerm: '', filterType: 'default' };
+    return { 
+      manualWateringMode: false, 
+      searchTerm: '', 
+      filterType: 'default',
+      notificationSettings: notificationService.getSettings()
+    };
   }
   
   try {
+    // Check if settings file exists before trying to read it
+    const fileInfo = await FileSystem.getInfoAsync(SETTINGS_FILE);
+    if (!fileInfo.exists) {
+      console.log('Settings file does not exist yet, using defaults');
+      return { 
+        manualWateringMode: false, 
+        searchTerm: '', 
+        filterType: 'default',
+        notificationSettings: notificationService.getSettings()
+      };
+    }
+    
     const settingsContent = await FileSystem.readAsStringAsync(SETTINGS_FILE);
     const settings = JSON.parse(settingsContent);
     return {
       manualWateringMode: settings.manualWateringMode ?? false,
       searchTerm: settings.searchTerm ?? '',
       filterType: settings.filterType ?? 'default',
+      notificationSettings: settings.notificationSettings ?? notificationService.getSettings(),
     };
   } catch (error) {
     console.error('Failed to load settings:', error);
-    return { manualWateringMode: false, searchTerm: '', filterType: 'default' };
+    return { 
+      manualWateringMode: false, 
+      searchTerm: '', 
+      filterType: 'default',
+      notificationSettings: notificationService.getSettings()
+    };
   }
 };
 
@@ -214,13 +244,24 @@ export const useStore = create<PlantState>((set, get) => ({
   debugTimeOffset: 0, // Initialize debug time offset
   searchTerm: '',
   filterType: 'default',
+  notificationSettings: notificationService.getSettings(),
 
   loadPlants: async () => {
-    set({ isLoading: true });
     try {
+      set({ isLoading: true });
       const plants = await loadPlantsFromFile();
       const settings = await loadSettingsFromFile();
-      set({ plants, isLoading: false, manualWateringMode: settings.manualWateringMode, searchTerm: settings.searchTerm, filterType: settings.filterType });
+      set({ 
+        plants, 
+        isLoading: false, 
+        manualWateringMode: settings.manualWateringMode, 
+        searchTerm: settings.searchTerm, 
+        filterType: settings.filterType,
+        notificationSettings: settings.notificationSettings
+      });
+      
+      // Schedule notifications for all plants
+      await notificationService.schedulePlantReminders(plants);
     } catch (error) {
       console.error('Error loading plants:', error);
       set({ isLoading: false });
@@ -245,24 +286,20 @@ export const useStore = create<PlantState>((set, get) => ({
     
     // Save to file
     await savePlantsToFile(updatedPlants);
+    
+    // Reschedule notifications
+    await notificationService.schedulePlantReminders(updatedPlants);
   },
 
   removePlant: async (id) => {
-    const plant = get().plants.find(p => p.id === id);
     const updatedPlants = get().plants.filter(plant => plant.id !== id);
     set({ plants: updatedPlants });
     
-    // Delete image file if it's in our app directory
-    if (plant && FileSystem.documentDirectory && plant.image.startsWith(FileSystem.documentDirectory)) {
-      try {
-        await FileSystem.deleteAsync(plant.image);
-      } catch (error) {
-        console.error('Error deleting image file:', error);
-      }
-    }
-    
     // Save to file
     await savePlantsToFile(updatedPlants);
+    
+    // Reschedule notifications
+    await notificationService.schedulePlantReminders(updatedPlants);
   },
 
   updatePlant: async (id, updates) => {
@@ -273,6 +310,9 @@ export const useStore = create<PlantState>((set, get) => ({
     
     // Save to file
     await savePlantsToFile(updatedPlants);
+    
+    // Reschedule notifications
+    await notificationService.schedulePlantReminders(updatedPlants);
   },
 
   waterPlant: async (id) => {
@@ -283,12 +323,15 @@ export const useStore = create<PlantState>((set, get) => ({
     
     // Save to file
     await savePlantsToFile(updatedPlants);
+    
+    // Reschedule notifications
+    await notificationService.schedulePlantReminders(updatedPlants);
   },
 
   setManualWateringMode: async (enabled) => {
     set({ manualWateringMode: enabled });
     // Save to file
-    await saveSettingsToFile({ manualWateringMode: enabled, searchTerm: get().searchTerm, filterType: get().filterType });
+    await saveSettingsToFile({ manualWateringMode: enabled, searchTerm: get().searchTerm, filterType: get().filterType, notificationSettings: get().notificationSettings });
   },
 
   setDebugTimeOffset: (offset) => {
@@ -302,7 +345,7 @@ export const useStore = create<PlantState>((set, get) => ({
   setFilterType: async (type) => {
     set({ filterType: type });
     // Save to file
-    await saveSettingsToFile({ manualWateringMode: get().manualWateringMode, searchTerm: get().searchTerm, filterType: type });
+    await saveSettingsToFile({ manualWateringMode: get().manualWateringMode, searchTerm: get().searchTerm, filterType: type, notificationSettings: get().notificationSettings });
   },
 
   getFilteredPlants: () => {
@@ -332,5 +375,30 @@ export const useStore = create<PlantState>((set, get) => ({
     }
 
     return filteredPlants;
+  },
+
+  setNotificationSettings: async (settings) => {
+    const updatedSettings = { ...get().notificationSettings, ...settings };
+    set({ notificationSettings: updatedSettings });
+    await notificationService.updateSettings(updatedSettings);
+    
+    // Reschedule notifications with new settings
+    await notificationService.schedulePlantReminders(get().plants);
+    
+    // Save to file
+    await saveSettingsToFile({ 
+      manualWateringMode: get().manualWateringMode, 
+      searchTerm: get().searchTerm, 
+      filterType: get().filterType,
+      notificationSettings: updatedSettings
+    });
+  },
+
+  testNotification: async () => {
+    await notificationService.testNotification();
+  },
+
+  testBackgroundNotification: async () => {
+    await notificationService.testBackgroundNotification();
   },
 }));

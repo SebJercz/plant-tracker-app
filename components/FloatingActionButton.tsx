@@ -24,9 +24,10 @@ export function FloatingActionButton({
     >
       <Pressable
         onPress={onPress}
-        className="w-14 h-14 rounded-full bg-primary items-center justify-center shadow-lg"
+        className="w-14 h-14 rounded-full items-center justify-center shadow-lg"
         style={{
-          shadowColor: colors.primary,
+          backgroundColor: '#10b981',
+          shadowColor: '#10b981',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
           shadowRadius: 8,

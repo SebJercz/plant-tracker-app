@@ -18,6 +18,8 @@ import { cn } from '~/lib/cn';
 import { useColorScheme, useInitialAndroidBarSync } from '~/lib/useColorScheme';
 import { NAV_THEME } from '~/theme';
 import { useStore } from '~/store/store';
+import { useEffect } from 'react';
+import { notificationService } from '~/lib/notifications';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -27,6 +29,11 @@ export {
 export default function RootLayout() {
   useInitialAndroidBarSync();
   const { colorScheme, isDarkColorScheme } = useColorScheme();
+
+  useEffect(() => {
+    // Initialize notification service
+    notificationService.initialize();
+  }, []);
 
   return (
     <>

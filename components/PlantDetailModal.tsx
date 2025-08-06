@@ -198,7 +198,7 @@ export function PlantDetailModal({ isVisible, onClose, plant, onEditPlant }: Pla
             <ProgressIndicator 
               key={`progress-${freshPlant.id}-${freshPlant.lastWatered.getTime()}`}
               value={progress} 
-              className={isOverdue ? "bg-destructive" : isReadyToWater ? "bg-green-500" : ""}
+              className={isOverdue ? "bg-rose-500" : isReadyToWater ? "bg-emerald-500" : ""}
             />
             <View className="flex-row justify-between mt-2">
               <Text variant="caption2" className="text-muted-foreground">
@@ -206,7 +206,7 @@ export function PlantDetailModal({ isVisible, onClose, plant, onEditPlant }: Pla
               </Text>
               <Text 
                 variant="caption2" 
-                className={needsWatering ? 'text-destructive font-medium' : 'text-muted-foreground'}
+                className={needsWatering ? 'text-rose-600 font-medium' : 'text-muted-foreground'}
               >
                 {needsWatering 
                   ? (isReadyToWater ? 'Ready to water!' : 
@@ -233,9 +233,9 @@ export function PlantDetailModal({ isVisible, onClose, plant, onEditPlant }: Pla
               <Button
                 onPress={handleWaterPlant}
                 className="w-full"
-                style={{ backgroundColor: 'blue', minHeight: 50 }}
+                style={{ backgroundColor: '#10b981', minHeight: 50 }}
               >
-                <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
                   Mark as Watered
                 </Text>
               </Button>
@@ -269,23 +269,23 @@ export function PlantDetailModal({ isVisible, onClose, plant, onEditPlant }: Pla
             minHeight: 80,
           }}
         >
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-3 justify-center">
             <Button
               onPress={handleEditPlant}
-              className="flex-1"
-              style={{ backgroundColor: 'green', minHeight: 50 }}
+              className="flex-1 max-w-32"
+              style={{ backgroundColor: '#10b981', minHeight: 50 }}
             >
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
                 Edit Plant
               </Text>
             </Button>
             <Button
               onPress={handleDeletePlant}
-              className="flex-1"
+              className="flex-1 max-w-32"
               disabled={isDeleting}
-              style={{ backgroundColor: 'red', minHeight: 50 }}
+              style={{ backgroundColor: '#ef4444', minHeight: 50 }}
             >
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
                 {isDeleting ? 'Deleting...' : 'Delete Plant'}
               </Text>
             </Button>

@@ -75,8 +75,10 @@ export default function HomeScreen() {
         renderItem={renderPlantCard}
         keyExtractor={(item) => item.id}
         numColumns={2}
-        contentContainerClassName="p-4 pb-24"
+        columnWrapperStyle={{ gap: 12 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       />
 
       {/* Floating Action Button */}

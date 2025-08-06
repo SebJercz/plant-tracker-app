@@ -50,11 +50,11 @@ export const PlantCard = React.memo(({ plant, onPress }: PlantCardProps) => {
   }, [plant.lastWatered, plant.wateringInterval, debugTimeOffset, manualWateringMode]);
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} style={{ flex: 1 }}>
       <View 
-        className={`rounded-xl border border-border p-3 shadow-sm ${
-          shouldShowRedBackground ? 'bg-red-50 border-red-200' :
-          shouldShowGreenBackground ? 'bg-green-50 border-green-200' : 'bg-card'
+        className={`rounded-xl border border-border p-4 shadow-sm flex-1 ${
+          shouldShowRedBackground ? 'bg-red-50/50 border-red-200/50' :
+          shouldShowGreenBackground ? 'bg-emerald-50/50 border-emerald-200/50' : 'bg-card'
         }`}
       >
         {/* Plant Image */}
@@ -79,7 +79,7 @@ export const PlantCard = React.memo(({ plant, onPress }: PlantCardProps) => {
         {/* Room Location */}
         <Text 
           variant="caption2" 
-          className="text-center text-muted-foreground mb-2"
+          className="text-center text-muted-foreground mb-3"
           numberOfLines={1}
         >
           {getRoomDisplayName(plant.room)}
@@ -89,14 +89,14 @@ export const PlantCard = React.memo(({ plant, onPress }: PlantCardProps) => {
         <View className="mb-2">
           <ProgressIndicator 
             value={progress} 
-            className={isReadyToWater ? "bg-green-500" : shouldShowRedBackground ? "bg-destructive" : ""}
+            className={isReadyToWater ? "bg-emerald-500" : shouldShowRedBackground ? "bg-rose-500" : ""}
           />
         </View>
 
         {/* Status Text */}
         <Text 
           variant="caption2" 
-          className={`text-center ${needsWatering ? 'text-destructive font-medium' : 'text-muted-foreground'}`}
+          className={`text-center ${needsWatering ? 'text-rose-600 font-medium' : 'text-muted-foreground'}`}
         >
           {needsWatering 
             ? (isReadyToWater ? 'Ready to water!' : 
