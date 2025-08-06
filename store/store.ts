@@ -3,6 +3,8 @@ import { create } from 'zustand';
 export interface Plant {
   id: string;
   name: string;
+  scientificName: string;
+  room: string;
   image: string;
   lastWatered: Date;
   wateringInterval: number; // in days
@@ -21,6 +23,8 @@ export const useStore = create<PlantState>((set) => ({
     {
       id: '1',
       name: 'Plant 1',
+      scientificName: 'Testus Plantus',
+      room: 'living-room',
       image: 'https://images.unsplash.com/photo-1466781783364-36c955e42a7f?w=400&h=400&fit=crop',
       lastWatered: new Date(),
       wateringInterval: 7,
@@ -28,6 +32,8 @@ export const useStore = create<PlantState>((set) => ({
     {
       id: '2',
       name: 'Plant 2',
+      scientificName: 'Sampleus Greenus',
+      room: 'kitchen',
       image: 'https://images.unsplash.com/photo-1593691509543-c55fb32e5cee?w=400&h=400&fit=crop',
       lastWatered: new Date(),
       wateringInterval: 7,
@@ -35,6 +41,8 @@ export const useStore = create<PlantState>((set) => ({
     {
       id: '3',
       name: 'Plant 3',
+      scientificName: 'Demo Flora',
+      room: 'bedroom',
       image: 'https://images.unsplash.com/photo-1593691509543-c55fb32e5cee?w=400&h=400&fit=crop',
       lastWatered: new Date(),
       wateringInterval: 7,

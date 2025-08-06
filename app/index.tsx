@@ -11,6 +11,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@roninoss/icons';
 
 import { PlantCard } from '~/components/PlantCard';
+import { FloatingActionButton } from '~/components/FloatingActionButton';
+import { AddPlantModal } from '~/components/AddPlantModal';
 import { useColorScheme } from '~/lib/useColorScheme';
 import { useStore } from '~/store/store';
 import { Text } from '~/components/nativewindui/Text';
@@ -26,10 +28,20 @@ export default function Screen() {
   const dimensions = useWindowDimensions();
   const headerHeight = useHeaderHeight();
   const { colors } = useColorScheme();
+  const [isAddModalVisible, setIsAddModalVisible] = React.useState(false);
 
   const handlePlantPress = (plantId: string) => {
     // TODO: Navigate to plant detail screen
     console.log('Plant pressed:', plantId);
+  };
+
+  const handleAddPlantPress = () => {
+    console.log('Add plant button pressed!');
+    setIsAddModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsAddModalVisible(false);
   };
 
   const renderPlantItem = ({ item }: { item: any }) => (
@@ -58,14 +70,23 @@ export default function Screen() {
   };
 
   return (
-    <FlatList
-      data={plants}
-      renderItem={renderPlantItem}
-      keyExtractor={(item) => item.id}
-      numColumns={2}
-      contentContainerClassName="py-4 android:pb-12"
-      ListEmptyComponent={plants.length === 0 ? renderEmptyState : undefined}
-      showsVerticalScrollIndicator={false}
-    />
+    <View className="flex-1">
+      <FlatList
+        data={plants}
+        renderItem={renderPlantItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerClassName="py-4 pb-24"
+        ListEmptyComponent={plants.length === 0 ? renderEmptyState : undefined}
+        showsVerticalScrollIndicator={false}
+      />
+      
+      <FloatingActionButton onPress={handleAddPlantPress} />
+      
+      <AddPlantModal 
+        isVisible={isAddModalVisible}
+        onClose={handleCloseModal}
+      />
+    </View>
   );
 }
