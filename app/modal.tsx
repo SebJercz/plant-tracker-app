@@ -6,10 +6,14 @@ import { useStore } from '~/store/store';
 import { NotificationSettings } from '~/components/NotificationSettings';
 
 export default function SettingsModal() {
-  const { manualWateringMode, setManualWateringMode } = useStore();
+  const { manualWateringMode, setManualWateringMode, showDebugFeatures, setShowDebugFeatures } = useStore();
 
   const handleToggleManualMode = async (enabled: boolean) => {
     await setManualWateringMode(enabled);
+  };
+
+  const handleToggleDebugFeatures = async (enabled: boolean) => {
+    await setShowDebugFeatures(enabled);
   };
 
   return (
@@ -37,6 +41,33 @@ export default function SettingsModal() {
               {manualWateringMode 
                 ? 'Manual mode: You control when plants are marked as watered. Progress bars will reset when you click "Mark as Watered".'
                 : 'Automatic mode: Plants are automatically marked as watered at the end of their watering day.'
+              }
+            </Text>
+          </View>
+        </View>
+
+        {/* Debug Features */}
+        <View className="p-6 bg-card border-b border-border">
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-1">
+              <Text variant="subhead" className="font-medium mb-1">
+                Debug Time Trial Features
+              </Text>
+              <Text variant="caption2" className="text-muted-foreground">
+                Show debug buttons in header for testing watering cycles
+              </Text>
+            </View>
+            <Toggle
+              value={showDebugFeatures}
+              onValueChange={handleToggleDebugFeatures}
+            />
+          </View>
+          
+          <View className="mt-3 p-3 bg-muted rounded-lg">
+            <Text variant="caption2" className="text-muted-foreground">
+              {showDebugFeatures 
+                ? 'Debug features enabled: Time travel buttons (◀, ▶, ⟲) will appear in the header for testing.'
+                : 'Debug features disabled: Time travel buttons are hidden from the header.'
               }
             </Text>
           </View>

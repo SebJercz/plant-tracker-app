@@ -12,6 +12,7 @@ export interface Plant {
   wateringInterval: number; // in days
   notes?: string; // Optional custom notes
   effectiveLastWatered?: Date; // For automatic mode tracking
+  wateringCount: number; // Number of times the plant has been watered
 }
 
 export interface PlantState {
@@ -19,6 +20,7 @@ export interface PlantState {
   isLoading: boolean;
   manualWateringMode: boolean;
   debugTimeOffset: number;
+  showDebugFeatures: boolean;
   searchTerm: string;
   filterType: 'default' | 'alphabetical' | 'room' | 'watering-priority';
   notificationSettings: NotificationSettings;
@@ -29,12 +31,11 @@ export interface PlantState {
   loadPlants: () => Promise<void>;
   setManualWateringMode: (enabled: boolean) => Promise<void>;
   setDebugTimeOffset: (offset: number) => void;
+  setShowDebugFeatures: (enabled: boolean) => Promise<void>;
   setSearchTerm: (term: string) => void;
   setFilterType: (type: 'default' | 'alphabetical' | 'room' | 'watering-priority') => Promise<void>;
   getFilteredPlants: () => Plant[];
   setNotificationSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
-  testNotification: () => Promise<void>;
-  testBackgroundNotification: () => Promise<void>;
 }
 
 // File paths for data storage
@@ -60,6 +61,7 @@ const savePlantsToFile = async (plants: Plant[]) => {
     const plantsData = plants.map(plant => ({
       ...plant,
       lastWatered: plant.lastWatered.toISOString(),
+      wateringCount: plant.wateringCount || 0,
     }));
     await FileSystem.writeAsStringAsync(PLANTS_DATA_FILE, JSON.stringify(plantsData));
   } catch (error) {
@@ -81,6 +83,7 @@ const loadPlantsFromFile = async (): Promise<Plant[]> => {
     return plantsData.map((plant: any) => ({
       ...plant,
       lastWatered: new Date(plant.lastWatered),
+      wateringCount: plant.wateringCount || 0, // Default to 0 for existing plants
     }));
   } catch (error) {
     console.error('Error loading plants data:', error);
@@ -91,6 +94,7 @@ const loadPlantsFromFile = async (): Promise<Plant[]> => {
 // Helper function to save settings to file
 const saveSettingsToFile = async (settings: {
   manualWateringMode: boolean;
+  showDebugFeatures: boolean;
   searchTerm: string;
   filterType: 'default' | 'alphabetical' | 'room' | 'watering-priority';
   notificationSettings: NotificationSettings;
@@ -107,6 +111,7 @@ const saveSettingsToFile = async (settings: {
 // Helper function to load settings from file
 const loadSettingsFromFile = async (): Promise<{
   manualWateringMode: boolean;
+  showDebugFeatures: boolean;
   searchTerm: string;
   filterType: 'default' | 'alphabetical' | 'room' | 'watering-priority';
   notificationSettings: NotificationSettings;
@@ -114,6 +119,7 @@ const loadSettingsFromFile = async (): Promise<{
   if (!FileSystem.documentDirectory) {
     return { 
       manualWateringMode: false, 
+      showDebugFeatures: false,
       searchTerm: '', 
       filterType: 'default',
       notificationSettings: notificationService.getSettings()
@@ -127,6 +133,7 @@ const loadSettingsFromFile = async (): Promise<{
       console.log('Settings file does not exist yet, using defaults');
       return { 
         manualWateringMode: false, 
+        showDebugFeatures: false,
         searchTerm: '', 
         filterType: 'default',
         notificationSettings: notificationService.getSettings()
@@ -137,6 +144,7 @@ const loadSettingsFromFile = async (): Promise<{
     const settings = JSON.parse(settingsContent);
     return {
       manualWateringMode: settings.manualWateringMode ?? false,
+      showDebugFeatures: settings.showDebugFeatures ?? false,
       searchTerm: settings.searchTerm ?? '',
       filterType: settings.filterType ?? 'default',
       notificationSettings: settings.notificationSettings ?? notificationService.getSettings(),
@@ -145,6 +153,7 @@ const loadSettingsFromFile = async (): Promise<{
     console.error('Failed to load settings:', error);
     return { 
       manualWateringMode: false, 
+      showDebugFeatures: false,
       searchTerm: '', 
       filterType: 'default',
       notificationSettings: notificationService.getSettings()
@@ -242,6 +251,7 @@ export const useStore = create<PlantState>((set, get) => ({
   isLoading: false,
   manualWateringMode: false, // Initialize the new setting
   debugTimeOffset: 0, // Initialize debug time offset
+  showDebugFeatures: false, // Initialize debug features toggle
   searchTerm: '',
   filterType: 'default',
   notificationSettings: notificationService.getSettings(),
@@ -255,6 +265,7 @@ export const useStore = create<PlantState>((set, get) => ({
         plants, 
         isLoading: false, 
         manualWateringMode: settings.manualWateringMode, 
+        showDebugFeatures: settings.showDebugFeatures,
         searchTerm: settings.searchTerm, 
         filterType: settings.filterType,
         notificationSettings: settings.notificationSettings
@@ -274,11 +285,16 @@ export const useStore = create<PlantState>((set, get) => ({
     // Copy image to app storage if it's a local file
     const processedImageUri = await copyImageToAppStorage(plant.image, newPlantId);
     
+    // Set creation time to 00:01 of the current debug day (not real day)
+    const currentDebugTime = getCurrentTimeWithOffset(get().debugTimeOffset);
+    const creationTime = new Date(currentDebugTime.getFullYear(), currentDebugTime.getMonth(), currentDebugTime.getDate(), 0, 1, 0, 0);
+    
     const newPlant: Plant = {
       ...plant,
       id: newPlantId,
       image: processedImageUri,
-      lastWatered: new Date(),
+      lastWatered: creationTime,
+      wateringCount: 0, // Initialize watering count to 0
     };
     
     const updatedPlants = [...get().plants, newPlant];
@@ -316,9 +332,19 @@ export const useStore = create<PlantState>((set, get) => ({
   },
 
   waterPlant: async (id) => {
+    console.log('Store: waterPlant called for id:', id);
+    console.log('Store: Current plants before update:', get().plants.map(p => ({ id: p.id, lastWatered: p.lastWatered })));
+    
+    // Set watering time to 00:01 of the current debug day (not real day)
+    const currentDebugTime = getCurrentTimeWithOffset(get().debugTimeOffset);
+    const wateringTime = new Date(currentDebugTime.getFullYear(), currentDebugTime.getMonth(), currentDebugTime.getDate(), 0, 1, 0, 0);
+    
     const updatedPlants = get().plants.map(plant => 
-      plant.id === id ? { ...plant, lastWatered: new Date() } : plant
+      plant.id === id ? { ...plant, lastWatered: wateringTime, wateringCount: (plant.wateringCount || 0) + 1 } : plant
     );
+    
+    console.log('Store: Updated plants after update:', updatedPlants.map(p => ({ id: p.id, lastWatered: p.lastWatered })));
+    
     set({ plants: updatedPlants });
     
     // Save to file
@@ -326,12 +352,32 @@ export const useStore = create<PlantState>((set, get) => ({
     
     // Reschedule notifications
     await notificationService.schedulePlantReminders(updatedPlants);
+    
+    console.log('Store: waterPlant completed');
   },
 
   setManualWateringMode: async (enabled) => {
     set({ manualWateringMode: enabled });
     // Save to file
-    await saveSettingsToFile({ manualWateringMode: enabled, searchTerm: get().searchTerm, filterType: get().filterType, notificationSettings: get().notificationSettings });
+    await saveSettingsToFile({ 
+      manualWateringMode: enabled, 
+      showDebugFeatures: get().showDebugFeatures,
+      searchTerm: get().searchTerm, 
+      filterType: get().filterType, 
+      notificationSettings: get().notificationSettings 
+    });
+  },
+
+  setShowDebugFeatures: async (enabled) => {
+    set({ showDebugFeatures: enabled });
+    // Save to file
+    await saveSettingsToFile({ 
+      manualWateringMode: get().manualWateringMode, 
+      showDebugFeatures: enabled,
+      searchTerm: get().searchTerm, 
+      filterType: get().filterType, 
+      notificationSettings: get().notificationSettings 
+    });
   },
 
   setDebugTimeOffset: (offset) => {
@@ -345,7 +391,13 @@ export const useStore = create<PlantState>((set, get) => ({
   setFilterType: async (type) => {
     set({ filterType: type });
     // Save to file
-    await saveSettingsToFile({ manualWateringMode: get().manualWateringMode, searchTerm: get().searchTerm, filterType: type, notificationSettings: get().notificationSettings });
+    await saveSettingsToFile({ 
+      manualWateringMode: get().manualWateringMode, 
+      showDebugFeatures: get().showDebugFeatures,
+      searchTerm: get().searchTerm, 
+      filterType: type, 
+      notificationSettings: get().notificationSettings 
+    });
   },
 
   getFilteredPlants: () => {
@@ -388,17 +440,10 @@ export const useStore = create<PlantState>((set, get) => ({
     // Save to file
     await saveSettingsToFile({ 
       manualWateringMode: get().manualWateringMode, 
+      showDebugFeatures: get().showDebugFeatures,
       searchTerm: get().searchTerm, 
       filterType: get().filterType,
       notificationSettings: updatedSettings
     });
-  },
-
-  testNotification: async () => {
-    await notificationService.testNotification();
-  },
-
-  testBackgroundNotification: async () => {
-    await notificationService.testBackgroundNotification();
   },
 }));

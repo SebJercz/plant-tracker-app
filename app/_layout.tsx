@@ -68,56 +68,58 @@ const SCREEN_OPTIONS = {
 
 const INDEX_OPTIONS = {
   headerLargeTitle: true,
-  title: 'Plant Tracker',
+  title: 'Mr Mou Plant Care',
   headerRight: () => <HeaderButtons />,
 } as const;
 
 function HeaderButtons() {
   const { colors } = useColorScheme();
-  const { debugTimeOffset, setDebugTimeOffset } = useStore();
+  const { debugTimeOffset, setDebugTimeOffset, showDebugFeatures } = useStore();
 
-  const handleTimeForward = () => {
-    setDebugTimeOffset(debugTimeOffset + 1);
-  };
-
-  const handleTimeBackward = () => {
-    setDebugTimeOffset(debugTimeOffset - 1);
-  };
-
-  const handleResetTime = () => {
-    setDebugTimeOffset(0);
+  const handleTimeTravel = (days: number) => {
+    setDebugTimeOffset(debugTimeOffset + days);
   };
 
   return (
     <View className="flex-row items-center gap-2">
-      {/* Debug Time Travel Buttons */}
-      <Pressable onPress={handleTimeBackward} className="opacity-80">
-        {({ pressed }) => (
-          <View className={cn(pressed ? 'opacity-50' : 'opacity-90', 'w-6 h-6 items-center justify-center')}>
-            <Text style={{ color: colors.grey, fontSize: 16, fontWeight: 'bold' }}>◀</Text>
-          </View>
-        )}
-      </Pressable>
-      
-      <Pressable onPress={handleTimeForward} className="opacity-80">
-        {({ pressed }) => (
-          <View className={cn(pressed ? 'opacity-50' : 'opacity-90', 'w-6 h-6 items-center justify-center')}>
-            <Text style={{ color: colors.grey, fontSize: 16, fontWeight: 'bold' }}>▶</Text>
-          </View>
-        )}
-      </Pressable>
-      
-      {/* Reset Time Button */}
-      {debugTimeOffset !== 0 && (
-        <Pressable onPress={handleResetTime} className="opacity-80">
-          {({ pressed }) => (
-            <View className={cn(pressed ? 'opacity-50' : 'opacity-90', 'w-6 h-6 items-center justify-center')}>
-              <Text style={{ color: colors.grey, fontSize: 16, fontWeight: 'bold' }}>⟲</Text>
-            </View>
-          )}
-        </Pressable>
+      {/* Debug Time Travel Buttons - Only show when debug features are enabled */}
+      {showDebugFeatures && (
+        <>
+          <Pressable 
+            className="opacity-80" 
+            onPress={() => handleTimeTravel(-1)}
+          >
+            {({ pressed }) => (
+              <View className={cn(pressed ? 'opacity-50' : 'opacity-90')}>
+                <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: 'bold' }}>◀</Text>
+              </View>
+            )}
+          </Pressable>
+          
+          <Pressable 
+            className="opacity-80" 
+            onPress={() => handleTimeTravel(1)}
+          >
+            {({ pressed }) => (
+              <View className={cn(pressed ? 'opacity-50' : 'opacity-90')}>
+                <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: 'bold' }}>▶</Text>
+              </View>
+            )}
+          </Pressable>
+
+          <Pressable 
+            className="opacity-80" 
+            onPress={() => setDebugTimeOffset(0)}
+          >
+            {({ pressed }) => (
+              <View className={cn(pressed ? 'opacity-50' : 'opacity-90')}>
+                <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: 'bold' }}>⟲</Text>
+              </View>
+            )}
+          </Pressable>
+        </>
       )}
-      
+
       {/* Settings Button */}
       <Link href="/modal" asChild>
         <Pressable className="opacity-80">

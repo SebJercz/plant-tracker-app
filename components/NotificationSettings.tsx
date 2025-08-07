@@ -8,7 +8,7 @@ import { useStore } from '~/store/store';
 import { useColorScheme } from '~/lib/useColorScheme';
 
 export function NotificationSettings() {
-  const { notificationSettings, setNotificationSettings, testNotification, testBackgroundNotification } = useStore();
+  const { notificationSettings, setNotificationSettings } = useStore();
   const { colors } = useColorScheme();
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -49,27 +49,6 @@ export function NotificationSettings() {
       Alert.alert('Error', 'Failed to update notification time');
     } finally {
       setIsUpdating(false);
-    }
-  };
-
-  const handleTestNotification = async () => {
-    try {
-      await testNotification();
-      Alert.alert('Success', 'Test notification sent! Check your notification panel.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send test notification');
-    }
-  };
-
-  const handleTestBackgroundNotification = async () => {
-    try {
-      await testBackgroundNotification();
-      Alert.alert(
-        'Background Test Scheduled', 
-        'A test notification has been scheduled for 30 seconds from now. Close the app completely and wait for the notification to appear.'
-      );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to schedule background test notification');
     }
   };
 
@@ -122,28 +101,6 @@ export function NotificationSettings() {
               />
             ))}
           </Picker>
-        </View>
-      )}
-
-      {/* Test Notification Button */}
-      {notificationSettings.enabled && (
-        <View className="mt-4 space-y-2">
-          <Button
-            onPress={handleTestNotification}
-            variant="secondary"
-            className="w-full"
-            disabled={isUpdating}
-          >
-            <Text>Send Test Notification</Text>
-          </Button>
-          <Button
-            onPress={handleTestBackgroundNotification}
-            variant="secondary"
-            className="w-full"
-            disabled={isUpdating}
-          >
-            <Text>Test Background Notification (30 sec)</Text>
-          </Button>
         </View>
       )}
 

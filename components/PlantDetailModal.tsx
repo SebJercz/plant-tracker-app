@@ -45,7 +45,7 @@ export function PlantDetailModal({ isVisible, onClose, plant, onEditPlant }: Pla
   // Calculate watering progress with memoization to prevent Reanimated warnings
   // Move this before the early return to avoid hooks order issues
   const { progress, needsWatering, daysLeft, isReadyToWater, isOverdue, overdueDays } = useMemo(() => {
-    console.log('PlantDetailModal useMemo recalculating for plant:', freshPlant?.id, 'lastWatered:', freshPlant?.lastWatered);
+    console.log('PlantDetailModal useMemo recalculating for plant:', freshPlant?.id, 'lastWatered:', freshPlant?.lastWatered, 'manualWateringMode:', manualWateringMode);
     
     if (!freshPlant) {
       return { progress: 0, needsWatering: false, daysLeft: 0, isReadyToWater: false, isOverdue: false, overdueDays: 0 };
@@ -101,11 +101,40 @@ export function PlantDetailModal({ isVisible, onClose, plant, onEditPlant }: Pla
   if (!freshPlant) return null;
 
   const handleWaterPlant = async () => {
+    // Check if watering early (before ready or overdue)
+    if (!isReadyToWater && !isOverdue) {
+      Alert.alert(
+        'Water Early?',
+        `Are you sure you want to water "${freshPlant.name}" early? It still has ${daysLeft} days left.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Water Early',
+            style: 'default',
+            onPress: async () => {
+              await performWaterPlant();
+            },
+          },
+        ]
+      );
+    } else {
+      await performWaterPlant();
+    }
+  };
+
+  const performWaterPlant = async () => {
     try {
+      console.log('PlantDetailModal: handleWaterPlant called for plant:', freshPlant.id);
+      console.log('PlantDetailModal: Before watering - lastWatered:', freshPlant.lastWatered);
+      
       await waterPlant(freshPlant.id);
+      
+      console.log('PlantDetailModal: After watering - waiting for store update...');
+      
       // Don't close modal immediately - let user see the progress reset
       // The progress will update automatically due to the store change
     } catch (error) {
+      console.error('PlantDetailModal: Error watering plant:', error);
       Alert.alert('Error', 'Failed to update watering time. Please try again.');
     }
   };
@@ -204,20 +233,27 @@ export function PlantDetailModal({ isVisible, onClose, plant, onEditPlant }: Pla
               <Text variant="caption2" className="text-muted-foreground">
                 Last watered: {getDisplayLastWateredDate(freshPlant, getCurrentTimeWithOffset(debugTimeOffset), manualWateringMode).toLocaleDateString()}
               </Text>
-              <Text 
-                variant="caption2" 
-                className={needsWatering ? 'text-rose-600 font-medium' : 'text-muted-foreground'}
-              >
-                {needsWatering 
-                  ? (isReadyToWater ? 'Ready to water!' : 
-                     isOverdue ? `${overdueDays} day${overdueDays !== 1 ? 's' : ''} overdue!` : 'Needs watering!') 
-                  : `${daysLeft} days left`
-                }
-              </Text>
+                           <Text 
+               variant="caption2" 
+               className={
+                 isOverdue ? 'text-rose-600 font-medium' :
+                 isReadyToWater ? 'text-emerald-700 font-medium' :
+                 needsWatering ? 'text-rose-600 font-medium' : 'text-muted-foreground'
+               }
+             >
+               {needsWatering 
+                 ? (isReadyToWater ? 'Ready to water!' : 
+                    isOverdue ? `${overdueDays} day${overdueDays !== 1 ? 's' : ''} overdue!` : 'Needs watering!') 
+                 : `${daysLeft} days left`
+               }
+             </Text>
             </View>
-            <Text variant="caption2" className="text-muted-foreground mt-1">
-              Watering interval: {freshPlant.wateringInterval} days
-            </Text>
+                         <Text variant="caption2" className="text-muted-foreground mt-1">
+               Watering interval: {freshPlant.wateringInterval} days
+             </Text>
+             <Text variant="caption2" className="text-muted-foreground mt-1">
+               Times watered: {freshPlant.wateringCount || 0}
+             </Text>
             
             {/* Manual watering mode info */}
             {!manualWateringMode && (

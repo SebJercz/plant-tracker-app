@@ -153,68 +153,6 @@ export class NotificationService {
   getSettings(): NotificationSettings {
     return { ...this.settings };
   }
-
-  async testNotification(): Promise<void> {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: '🌱 Test Notification',
-        body: 'This is a test notification for plant watering reminders.',
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.MAX,
-        interruptionLevel: 'timeSensitive',
-      },
-      trigger: null, // Immediate notification
-    });
-  }
-
-  async testBackgroundNotification(): Promise<void> {
-    // Schedule a notification for 30 seconds from now to test background functionality
-    console.log('Starting background notification test...');
-    
-    try {
-      console.log(`Current time: ${new Date().toLocaleString()}`);
-      console.log(`Scheduling for 30 seconds from now`);
-      
-      const identifier = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '🌱 Background Test',
-          body: 'This notification was scheduled while the app was open and should appear even if the app is closed.',
-          sound: true,
-          data: { type: 'background-test' },
-          priority: Notifications.AndroidNotificationPriority.MAX,
-          interruptionLevel: 'timeSensitive',
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 30, // 30 seconds
-        },
-      });
-
-      console.log(`Background test notification scheduled successfully`);
-      console.log(`Notification ID: ${identifier}`);
-      
-      // Wait a moment and then check scheduled notifications
-      setTimeout(async () => {
-        try {
-          const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-          console.log(`Total scheduled notifications: ${scheduledNotifications.length}`);
-          scheduledNotifications.forEach((notification, index) => {
-            console.log(`Notification ${index + 1}:`, {
-              id: notification.identifier,
-              title: notification.content.title,
-              body: notification.content.body,
-              trigger: notification.trigger,
-            });
-          });
-        } catch (error) {
-          console.error('Error checking scheduled notifications:', error);
-        }
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Error scheduling background notification:', error);
-    }
-  }
 }
 
 export const notificationService = NotificationService.getInstance(); 

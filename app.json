@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "plant-tracker-app",
-    "slug": "plant-tracker-app",
+    "name": "Mr Mou Plant Care",
+    "slug": "mr-mou-plant-care",
     "version": "1.0.0",
-    "scheme": "plant-tracker-app",
+    "scheme": "mr-mou-plant-care",
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -22,9 +22,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
-          "color": "#ffffff",
-          "sounds": ["./assets/notification-sound.wav"]
+          "color": "#ffffff"
         }
       ]
     ],
@@ -55,7 +53,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.planttrackerapp",
+      "package": "com.mrmou.plantcare",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
